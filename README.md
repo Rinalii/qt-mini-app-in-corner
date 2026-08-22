@@ -1,0 +1,1 @@
+# qt-mini-app-in-corner
