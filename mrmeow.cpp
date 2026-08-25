@@ -1,5 +1,8 @@
 #include "mrmeow.h"
 
+#include "normalstate.h"
+#include "dragstate.h"
+
 #include <QApplication>
 #include <QScreen>
 #include <QPainter>
@@ -13,29 +16,36 @@
 #include <QAudioOutput>
 
 MrMeow::MrMeow(QWidget *parent)
-    : QWidget(parent), curr_frame_(0)
-{
+    : QWidget(parent) {
     setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
     setAttribute(Qt::WA_TranslucentBackground);
     setAttribute(Qt::WA_ShowWithoutActivating);
 
-    const QString resource_prefix = "./MyCat4/frame";
+    const QString normal_prefix = "./MyCat_normal_resize5/frame";
+    const QString drag_prefix = "./MyCat_drag/frame";
     QString err_msg;
-    if(!ReadFrames(resource_prefix, simp_frames_, err_msg)) {
+    if(!ReadFrames(normal_prefix, normal_frames_, err_msg)) {
         emit signalErrorHasOccurred(err_msg);
     }
 
-    QSize orig_size = simp_frames_.first().size();
-    QSize new_size = orig_size / 6;
-    resize(new_size);
-    setMinimumSize(50, 50);
+    if(!ReadFrames(drag_prefix, drag_frames_, err_msg)) {
+        emit signalErrorHasOccurred(err_msg);
+    }
+
+    if (!normal_frames_.isEmpty()) {
+        QSize orig_size = normal_frames_.first().size();
+        QSize new_size = orig_size / scale;
+        //int margin = new_size.height() * 0.5;
+        //new_size += QSize(new_size.width() * 0.5, margin);
+        resize(new_size);
+        setMinimumSize(50, 50);
+    }
 
     MoveToRightBottom();
 
-    // Таймер для смены кадров
-    frame_timer_ = new QTimer(this);
-    connect(frame_timer_, &QTimer::timeout, this, &MrMeow::slotNextFrame);
-    frame_timer_->start(50);
+    // Для ресайза
+    grip_ = new QSizeGrip(this);
+    grip_->move(width() - grip_->width(), height() - grip_->height());
 
     // Инициализация звуков
     if(!SetPlayer("./sounds/meow.wav", left_player_, err_msg)) {
@@ -59,9 +69,11 @@ MrMeow::MrMeow(QWidget *parent)
         qDebug() << "Rare player error:" << error << rare_player_->errorString();
     });
 
-    // Для ресайза
-    grip_ = new QSizeGrip(this);
-    grip_->move(width() - grip_->width(), height() - grip_->height());  // Начальная позиция
+
+    states_[StateName::Normal] = new NormalState(this, normal_frames_, this);
+    states_[StateName::Drag] = new DragState(this, drag_frames_, this);
+
+    SetState(StateName::Normal);
 }
 
 bool MrMeow::ReadFrames(const QString &resource_prefix, QList<QPixmap> &frames, QString &err_msg) {
@@ -126,41 +138,56 @@ void MrMeow::StopAllPlayers() {
     }
 }
 
-void MrMeow::resizeEvent(QResizeEvent *event) {
-    QWidget::resizeEvent(event);
-    if (grip_) {
-        grip_->move(width() - grip_->width(), height() - grip_->height());
+void MrMeow::MoveToRightBottom() {
+    QScreen *screen = QGuiApplication::primaryScreen();
+    if (!screen) {
+        return;
     }
+    QRect geom = screen->geometry();
+    move(geom.right() - width(), geom.bottom() - height());
 }
 
-void MrMeow::showEvent(QShowEvent *event) {
-    QWidget::showEvent(event);
-    if (grip_) {
-        grip_->move(width() - grip_->width(), height() - grip_->height());
+void MrMeow::SetState(StateName new_state) {
+
+    if(new_state == StateName::Normal) {
+        QSize orig_size = normal_frames_.first().size();
+        QSize new_size = orig_size / scale;
+        resize(new_size);
+    } else {
+        QSize orig_size = drag_frames_.first().size();
+        QSize new_size = orig_size / scale;
+        resize(new_size);
+    }
+
+    if (current_state_) {
+        current_state_->Stop();
+    }
+    auto it = states_.find(new_state);
+    if (it != states_.end()) {
+        current_state_ = it->second;
+        current_state_->Start();
     }
 }
 
 void MrMeow::paintEvent(QPaintEvent *event) {
     QWidget::paintEvent(event);
 
-    if (curr_frame_ >= simp_frames_.size()) {
-        return;
-    }
-
     QPainter painter(this);
-    painter.setRenderHint(QPainter::SmoothPixmapTransform);
-
-    QPixmap pix = simp_frames_[curr_frame_];
-    QPixmap scaled = pix.scaled(size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
-    painter.drawPixmap(QPoint(0, 0), scaled);
+    if (current_state_) {
+        current_state_->Render(painter);
+    }
 }
 
 void MrMeow::mousePressEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
         drag_pos_ = event->globalPosition().toPoint() - pos();
+        SetState(StateName::Drag);
+        if (current_state_) {
+            current_state_->MousePressed(event);
+        }
         event->accept();
-        StopAllPlayers();
 
+        StopAllPlayers();
         // 10% шанс воспроизвести редкий звук
         double r = QRandomGenerator::global()->generateDouble();
 
@@ -180,25 +207,27 @@ void MrMeow::mousePressEvent(QMouseEvent *event) {
 }
 
 void MrMeow::mouseMoveEvent(QMouseEvent *event) {
-    if (event->buttons() & Qt::LeftButton) {
-        move(event->globalPosition().toPoint() - drag_pos_);
-        event->accept();
+    if (current_state_) {
+        current_state_->MouseMoved(event);
     }
 }
 
-void MrMeow::slotNextFrame() {
-    if (simp_frames_.isEmpty()) {
-        return;
+void MrMeow::mouseReleaseEvent(QMouseEvent *event) {
+    if (current_state_) {
+        current_state_->MouseReleased(event);
     }
-    curr_frame_ = (curr_frame_ + 1) % simp_frames_.size();
-    update();
 }
 
-void MrMeow::MoveToRightBottom() {
-    QScreen *screen = QGuiApplication::primaryScreen();
-    if (!screen) {
-        return;
+void MrMeow::resizeEvent(QResizeEvent *event) {
+    QWidget::resizeEvent(event);
+    if (grip_) {
+        grip_->move(width() - grip_->width(), height() - grip_->height());
     }
-    QRect geom = screen->geometry();
-    move(geom.right() - width(), geom.bottom() - height());
+}
+
+void MrMeow::showEvent(QShowEvent *event) {
+    QWidget::showEvent(event);
+    if (grip_) {
+        grip_->move(width() - grip_->width(), height() - grip_->height());
+    }
 }
