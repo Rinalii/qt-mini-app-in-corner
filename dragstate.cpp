@@ -11,7 +11,6 @@ DragState::DragState(MrMeow *context, const QList<QPixmap> &frames, QObject *par
 
 void DragState::Start() {
     RenderState::Start();
-    move_painter_.StartDrag(drag_start_pos_);
 }
 
 void DragState::Stop() {
@@ -31,13 +30,33 @@ void DragState::Render(QPainter &painter) {
 }
 
 void DragState::MousePressed(QMouseEvent *event) {
-    if (!context_) {
+    if (!context_ || frames_.isEmpty()) {
         return;
     }
-    if (event->button() == Qt::LeftButton) {
-        drag_start_pos_ = event->globalPosition().toPoint() - context_->pos();
-        move_painter_.StartDrag(drag_start_pos_);
+    if (event->button() != Qt::LeftButton) {
+        return;
     }
+
+    QPixmap frame = frames_.first();
+    QPixmap scaled = frame.scaled(context_->size() * 2.0 / 3.0,
+                                  Qt::KeepAspectRatio,
+                                  Qt::SmoothTransformation);
+
+    // Точка вращения внутри спрайта
+    QPointF pr(scaled.width() / 3.0, scaled.height() / 20.0);
+    QPointF offset((context_->width() - scaled.width()) / 2.0,
+                   (context_->height() - scaled.height()) / 2.0);
+
+    QPointF mouse_global = event->globalPosition().toPoint();
+
+    // Перемещаем виджет, чтобы точка вращения оказалась под курсором
+    context_->move((mouse_global - offset - pr).toPoint());
+
+    // Запоминаем смещение от левого верхнего угла виджета до точки вращения
+    drag_start_pos_ = offset + pr;
+    context_->SetDragPos(drag_start_pos_.toPoint());  // для mouseMoveEvent
+
+    move_painter_.StartDrag(mouse_global);
 }
 
 void DragState::MouseMoved(QMouseEvent *event) {
@@ -50,10 +69,24 @@ void DragState::MouseMoved(QMouseEvent *event) {
     }
 }
 
-void DragState::MouseReleased(QMouseEvent *event) {
+void DragState::MouseReleased(QMouseEvent *event) {     //TODO: Избавиться от магических чисел и почистить логику смещения спрайта
     if (!context_) {
         return;
     }
+    QPixmap frame = frames_.first();
+    QPixmap scaled = frame.scaled(context_->size() * 2.0 / 3.0,
+                                  Qt::KeepAspectRatio,
+                                  Qt::SmoothTransformation);
+    QPointF offset((context_->width() - scaled.width()) / 2.0,
+                   (context_->height() - scaled.height()) / 2.0);
+    QPointF mouseGlobal = event->globalPosition().toPoint();
+
+    QPointF right_bottom{static_cast<qreal>(scaled.width()), static_cast<qreal>(scaled.height())};
+    QPointF normal_size{static_cast<qreal>(200), static_cast<qreal>(134)};
+    QPointF right_pos(mouseGlobal.x() - offset.x()-scaled.width()/3.0 + normal_size.x()/3.0,
+                      mouseGlobal.y()+right_bottom.y() - 2*offset.y() - normal_size.y());
+
+    context_->move(right_pos.toPoint());
     if (event->button() == Qt::LeftButton) {
         move_painter_.StopDrag();
         context_->SetState(MrMeow::StateName::Normal);
