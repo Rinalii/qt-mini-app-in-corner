@@ -29,11 +29,8 @@ void DragState::Render(QPainter &painter) {
     move_painter_.Render(painter, scaled, context_->rect());
 }
 
-void DragState::MousePressed(QMouseEvent *event) {
+void DragState::StartDrag(const QPointF &mouse_global) {
     if (!context_ || frames_.isEmpty()) {
-        return;
-    }
-    if (event->button() != Qt::LeftButton) {
         return;
     }
 
@@ -47,14 +44,11 @@ void DragState::MousePressed(QMouseEvent *event) {
     QPointF offset((context_->width() - scaled.width()) / 2.0,
                    (context_->height() - scaled.height()) / 2.0);
 
-    QPointF mouse_global = event->globalPosition().toPoint();
-
     // Перемещаем виджет, чтобы точка вращения оказалась под курсором
     context_->move((mouse_global - offset - pr).toPoint());
 
     // Запоминаем смещение от левого верхнего угла виджета до точки вращения
-    drag_start_pos_ = offset + pr;
-    context_->SetDragPos(drag_start_pos_.toPoint());  // для mouseMoveEvent
+    context_->SetDragPos((offset + pr).toPoint());  // для mouseMoveEvent
 
     move_painter_.StartDrag(mouse_global);
 }

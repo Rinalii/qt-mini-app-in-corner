@@ -14,13 +14,13 @@ public:
     void Stop() override;
     void Render(QPainter &painter) override;
 
-    void MousePressed(QMouseEvent *event) override;
     void MouseMoved(QMouseEvent *event) override;
     void MouseReleased(QMouseEvent *event) override;
 
+    void StartDrag(const QPointF &mouse_global);
+
 private:
     MovePainter move_painter_;
-    QPointF drag_start_pos_;
 };
 
 #endif // DRAGSTATE_H

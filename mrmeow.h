@@ -64,6 +64,11 @@ private:
 
     RenderState *current_state_ = nullptr;
     std::map<StateName, RenderState*> states_;
+
+    // Для контроля перетаскивания
+    bool is_left_button_pressed_ = false;
+    QPointF press_pos_;                     // глобальная позиция при нажатии
+    bool drag_started_ = false;
 };
 
 #endif // MRMEOW_H

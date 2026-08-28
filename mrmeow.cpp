@@ -180,12 +180,9 @@ void MrMeow::paintEvent(QPaintEvent *event) {
 
 void MrMeow::mousePressEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
-        drag_pos_ = event->globalPosition().toPoint() - pos();
-        SetState(StateName::Drag);
-        if (current_state_) {
-            current_state_->MousePressed(event);
-        }
-        event->accept();
+        is_left_button_pressed_ = true;
+        press_pos_ = event->globalPosition().toPoint();
+        drag_started_ = false;
 
         StopAllPlayers();
         // 10% шанс воспроизвести редкий звук
@@ -196,6 +193,7 @@ void MrMeow::mousePressEvent(QMouseEvent *event) {
         } else {
             left_player_->play();
         }
+        event->accept();
     } else if (event->button() == Qt::RightButton) {
         event->accept();
         StopAllPlayers();
@@ -207,6 +205,21 @@ void MrMeow::mousePressEvent(QMouseEvent *event) {
 }
 
 void MrMeow::mouseMoveEvent(QMouseEvent *event) {
+    if (is_left_button_pressed_ && (event->buttons() & Qt::LeftButton)) {
+        if (!drag_started_) {
+            QPointF delta = event->globalPosition().toPoint() - press_pos_;
+            // Порог в 5 пикселей
+            if (delta.manhattanLength() > 5) {
+                SetState(StateName::Drag);
+                drag_started_ = true;
+
+                DragState* drag_state = dynamic_cast<DragState*>(current_state_);
+                if (drag_state) {
+                    drag_state->StartDrag(event->globalPosition().toPoint());
+                }
+            }
+        }
+    }
     if (current_state_) {
         current_state_->MouseMoved(event);
     }
@@ -216,6 +229,8 @@ void MrMeow::mouseReleaseEvent(QMouseEvent *event) {
     if (current_state_) {
         current_state_->MouseReleased(event);
     }
+    is_left_button_pressed_ = false;
+    drag_started_ = false;
 }
 
 void MrMeow::resizeEvent(QResizeEvent *event) {
