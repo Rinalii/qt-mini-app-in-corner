@@ -213,10 +213,7 @@ void MrMeow::mouseMoveEvent(QMouseEvent *event) {
                 SetState(StateName::Drag);
                 drag_started_ = true;
 
-                DragState* drag_state = dynamic_cast<DragState*>(current_state_);
-                if (drag_state) {
-                    drag_state->StartDrag(event->globalPosition().toPoint());
-                }
+                current_state_->MousePressed(event);
             }
         }
     }

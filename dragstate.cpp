@@ -29,7 +29,7 @@ void DragState::Render(QPainter &painter) {
     move_painter_.Render(painter, scaled, context_->rect());
 }
 
-void DragState::StartDrag(const QPointF &mouse_global) {
+void DragState::MousePressed(QMouseEvent *event) {
     if (!context_ || frames_.isEmpty()) {
         return;
     }
@@ -44,6 +44,7 @@ void DragState::StartDrag(const QPointF &mouse_global) {
     QPointF offset((context_->width() - scaled.width()) / 2.0,
                    (context_->height() - scaled.height()) / 2.0);
 
+    QPointF mouse_global = event->globalPosition().toPoint();
     // Перемещаем виджет, чтобы точка вращения оказалась под курсором
     context_->move((mouse_global - offset - pr).toPoint());
 
