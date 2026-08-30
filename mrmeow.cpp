@@ -2,6 +2,7 @@
 
 #include "normalstate.h"
 #include "dragstate.h"
+#include "minimenu.h"
 
 #include <QApplication>
 #include <QScreen>
@@ -179,6 +180,11 @@ void MrMeow::paintEvent(QPaintEvent *event) {
 }
 
 void MrMeow::mousePressEvent(QMouseEvent *event) {
+    if (is_double_click_) {
+        is_double_click_ = false;
+        event->accept();
+        return;
+    }
     if (event->button() == Qt::LeftButton) {
         is_left_button_pressed_ = true;
         press_pos_ = event->globalPosition().toPoint();
@@ -228,6 +234,25 @@ void MrMeow::mouseReleaseEvent(QMouseEvent *event) {
     }
     is_left_button_pressed_ = false;
     drag_started_ = false;
+}
+
+void MrMeow::mouseDoubleClickEvent(QMouseEvent *event) {
+    if (event->button() == Qt::LeftButton) {
+        if (!mini_menu_) {
+            mini_menu_ = new MiniMenu(this);
+        }
+
+        // Позиционируем меню слева
+        QPoint menu_pos = mapToGlobal(QPoint(-mini_menu_->width(), 0));
+
+        mini_menu_->move(menu_pos);
+        mini_menu_->show();
+
+        is_double_click_ = true;
+        event->accept();
+    } else {
+        QWidget::mouseDoubleClickEvent(event);
+    }
 }
 
 void MrMeow::resizeEvent(QResizeEvent *event) {

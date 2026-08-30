@@ -19,6 +19,8 @@ class RenderState;
 class NormalState;
 class DragState;
 
+class MiniMenu;
+
 class MrMeow : public QWidget
 {
     Q_OBJECT
@@ -37,6 +39,7 @@ protected:
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
+    void mouseDoubleClickEvent(QMouseEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
     void showEvent(QShowEvent *event) override;
 
@@ -69,6 +72,9 @@ private:
     bool is_left_button_pressed_ = false;
     QPointF press_pos_;                     // глобальная позиция при нажатии
     bool drag_started_ = false;
+
+    MiniMenu *mini_menu_ = nullptr;
+    bool is_double_click_ = false;
 };
 
 #endif // MRMEOW_H
