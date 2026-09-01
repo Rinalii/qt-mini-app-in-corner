@@ -2,8 +2,8 @@
 
 #include <QJsonObject>
 
-ChatHistory::ChatHistory(const QString &system_prompt, QObject *parent) :
-    QObject(parent)
+ChatHistory::ChatHistory(const QString &system_prompt, QObject *parent)
+    : QObject(parent)
     , system_prompt_(system_prompt) {
 }
 
@@ -19,14 +19,12 @@ void ChatHistory::AddMessage(const QString &role, const QString &content) {
     emit signalHistoryChanged();
 }
 
-void ChatHistory::SetSystemPrompt(const QString &prompt)
-{
+void ChatHistory::SetSystemPrompt(const QString &prompt) {
     system_prompt_ = prompt;
     emit signalHistoryChanged();
 }
 
-QJsonArray ChatHistory::GetMessagesForRequest(int max_count) const
-{
+QJsonArray ChatHistory::GetMessagesForRequest(int max_count) const {
     QJsonArray result;
 
     // Всегда добавляем системное сообщение, если оно задано
@@ -50,13 +48,24 @@ QJsonArray ChatHistory::GetMessagesForRequest(int max_count) const
     return result;
 }
 
-int ChatHistory::getSize() const
-{
+QList<ChatHistory::MessageForUI> ChatHistory::GetMessagesForUI(int max_count) const {
+    QList<MessageForUI> result;
+
+    for (int i = 0; i < messages_.size() && i < max_count; ++i) {
+        QJsonObject message = messages_.at(i);
+        MessageForUI message_for_ui;
+        message_for_ui.text = message["content"].toString();
+        message_for_ui.is_left = message["role"].toString() == "assistant";
+        result.append(message_for_ui);
+    }
+    return result;
+}
+
+int ChatHistory::getSize() const {
     return messages_.size() + (system_prompt_.isEmpty() ? 0 : 1);
 }
 
-void ChatHistory::Clear()
-{
+void ChatHistory::Clear() {
     messages_.clear();
     emit signalHistoryChanged();
 }

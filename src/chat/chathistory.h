@@ -11,11 +11,17 @@ class ChatHistory : public QObject
 public:
     explicit ChatHistory(const QString &system_prompt = "", QObject *parent = nullptr);
 
-    // Добавить сообщение (role: "user" или "assistant")
+    // Добавить сообщение (role: "system", "user" или "assistant")
     void AddMessage(const QString &role, const QString &content);
     void SetSystemPrompt(const QString &prompt);
 
-    QJsonArray GetMessagesForRequest(int max_сount) const;
+    QJsonArray GetMessagesForRequest(int max_count) const;
+
+    struct MessageForUI {
+        QString text;
+        bool is_left;
+    };
+    QList<MessageForUI> GetMessagesForUI(int max_count) const;
 
     int getSize() const;
     void Clear();
@@ -24,7 +30,7 @@ signals:
     void signalHistoryChanged();
 
 private:
-    QList<QJsonObject> messages_;   // user / assistant
+    QList<QJsonObject> messages_;
     QString system_prompt_;
 };
 
