@@ -6,7 +6,7 @@
 ChatHistoryModel::ChatHistoryModel(ChatHistory *history, QObject *parent)
     : QAbstractListModel(parent), history_(history) {
     if (history_) {
-        //connect(history_, &ChatHistory::signalHistoryChanged, this, &ChatHistoryModel::onHistoryChanged);
+        connect(history_, &ChatHistory::signalHistoryChanged, this, &ChatHistoryModel::slotHistoryChanged);
         RefreshData();
     }
 }
@@ -33,7 +33,7 @@ QVariant ChatHistoryModel::data(const QModelIndex &index, int role) const {
 QHash<int, QByteArray> ChatHistoryModel::roleNames() const {
     QHash<int, QByteArray> roles;
     roles[RoleText] = "text";
-    roles[RoleIsLeft] = "is_left";
+    roles[RoleIsLeft] = "isLeft";
     return roles;
 }
 
