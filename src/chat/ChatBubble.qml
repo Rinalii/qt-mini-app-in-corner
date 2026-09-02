@@ -5,7 +5,7 @@ Rectangle {
     id: bubble
 
     property string name: "ChatBubble"
-    property alias text: bubble_txt.text
+    property alias text: bubbleTxt.text
 
     property color bubbleColor: "#fff485"
     property bool isLeft: true
@@ -13,14 +13,9 @@ Rectangle {
     property int cornerRadius: 15
     property int padding: cornerRadius/2
 
-    anchors.left: isLeft ? parent.left : undefined
-    anchors.right: isLeft ? undefined : parent.right
-    anchors.leftMargin: isLeft ? 10 : 0
-    anchors.rightMargin: isLeft ? 0 : 10
-
     color: "transparent"
-    width: Math.min(maxWidth, Math.max(cornerRadius*2, bubble_txt.implicitWidth + padding * 2))
-    height: bubble_txt.height < cornerRadius*2 ? cornerRadius*2 : bubble_txt.height + padding*2
+    width: Math.min(maxWidth, Math.max(cornerRadius*2, bubbleTxt.implicitWidth + padding * 2))
+    height: bubbleTxt.height < cornerRadius*2 ? cornerRadius*2 : bubbleTxt.height + padding*2
 
     Shape {
         anchors.fill: bubble
@@ -55,7 +50,7 @@ Rectangle {
         }
     }
     TextEdit {
-        id: bubble_txt
+        id: bubbleTxt
         x: bubble.padding
         y: (bubble.height - height) / 2
         readOnly: true
