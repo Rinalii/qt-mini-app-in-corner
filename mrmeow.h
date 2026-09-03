@@ -20,6 +20,7 @@ class NormalState;
 class DragState;
 
 class MiniMenu;
+class ChatWidget;
 
 class MrMeow : public QWidget
 {
@@ -45,6 +46,9 @@ protected:
 
 signals:
     void signalErrorHasOccurred(const QString& err_msg);
+
+private slots:
+    void slotOpenChat();
 
 private:
     static bool ReadFrames(const QString& resource_prefix, QList<QPixmap>& frames, QString& err_msg);
@@ -75,6 +79,8 @@ private:
 
     MiniMenu *mini_menu_ = nullptr;
     bool is_double_click_ = false;
+
+    ChatWidget *chat_widget_ = nullptr;
 };
 
 #endif // MRMEOW_H

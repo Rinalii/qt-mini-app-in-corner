@@ -3,6 +3,7 @@
 #include "normalstate.h"
 #include "dragstate.h"
 #include "minimenu.h"
+#include "src/chat/chatwidget.h"
 
 #include <QApplication>
 #include <QScreen>
@@ -22,8 +23,8 @@ MrMeow::MrMeow(QWidget *parent)
     setAttribute(Qt::WA_TranslucentBackground);
     setAttribute(Qt::WA_ShowWithoutActivating);
 
-    const QString normal_prefix = "./MyCat_normal_resize5/frame";
-    const QString drag_prefix = "./MyCat_drag/frame";
+    const QString normal_prefix = ":/images/states/normal/frame";
+    const QString drag_prefix = ":/images/states/drag/frame";
     QString err_msg;
     if(!ReadFrames(normal_prefix, normal_frames_, err_msg)) {
         emit signalErrorHasOccurred(err_msg);
@@ -49,13 +50,13 @@ MrMeow::MrMeow(QWidget *parent)
     grip_->move(width() - grip_->width(), height() - grip_->height());
 
     // Инициализация звуков
-    if(!SetPlayer("./sounds/meow.wav", left_player_, err_msg)) {
+    if(!SetPlayer("qrc:/sounds/meow.wav", left_player_, err_msg)) {
         emit signalErrorHasOccurred(err_msg);
     }
-    if(!SetPlayer("./sounds/song.wav", right_player_, err_msg)) {
+    if(!SetPlayer("qrc:/sounds/song.wav", right_player_, err_msg)) {
         emit signalErrorHasOccurred(err_msg);
     }
-    if(!SetPlayer("./sounds/meow2.wav", rare_player_, err_msg)) {
+    if(!SetPlayer("qrc:/sounds/meow2.wav", rare_player_, err_msg)) {
         emit signalErrorHasOccurred(err_msg);
     }
 
@@ -240,6 +241,7 @@ void MrMeow::mouseDoubleClickEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
         if (!mini_menu_) {
             mini_menu_ = new MiniMenu(this);
+            connect(mini_menu_, &MiniMenu::signalOpenChat, this, &MrMeow::slotOpenChat);
         }
 
         // Позиционируем меню слева
@@ -266,5 +268,16 @@ void MrMeow::showEvent(QShowEvent *event) {
     QWidget::showEvent(event);
     if (grip_) {
         grip_->move(width() - grip_->width(), height() - grip_->height());
+    }
+}
+
+void MrMeow::slotOpenChat() {
+    if(!chat_widget_) {
+        chat_widget_ = new ChatWidget(this);
+    }
+    if(!chat_widget_->isVisible()) {
+        chat_widget_->show();
+    } else {
+        chat_widget_->hide();
     }
 }
